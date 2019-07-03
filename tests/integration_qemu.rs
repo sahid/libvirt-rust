@@ -89,6 +89,16 @@ fn test_create_storage_pool_and_vols() {
 #[test]
 #[ignore]
 fn test_connection_with_auth() {
+    // Rust is excecuting tests in parallel (threads), if a sasl
+    // connection is open when an other happen in same time from the
+    // same libvirt connection an error happens: "Failed to start SASL
+    // negotiation: -4 (SASL(-4): no mechanism available: No worthy
+    // mechs found)".
+    connection_with_auth_ok();
+    connection_with_auth_wrong();
+}
+
+fn connection_with_auth_ok() {
     fn callback(creds: &mut Vec<ConnectCredential>) {
         for cred in creds {
             match cred.typed {
@@ -118,10 +128,7 @@ fn test_connection_with_auth() {
     }
 }
 
-
-#[test]
-#[ignore]
-fn test_connection_with_auth_wrong() {
+fn connection_with_auth_wrong() {
     fn callback(creds: &mut Vec<ConnectCredential>) {
         for cred in creds {
             match cred.typed {
