@@ -1,6 +1,6 @@
 language: rust
 os: linux
-dist: trusty
+dist: bionic
 sudo: require
 
 rust:
@@ -13,11 +13,10 @@ matrix:
     - rust: nightly
 
 env:
-  - LIBVIRT=1.2.0  EXT=gz
-  - LIBVIRT=1.2.10 EXT=gz
-  - LIBVIRT=1.2.20 EXT=gz
   - LIBVIRT=2.5.0  EXT=xz
-  - LIBVIRT=3.3.0  EXT=xz
+  - LIBVIRT=3.10.0  EXT=xz
+  - LIBVIRT=4.10.0  EXT=xz
+  - LIBVIRT=5.5.0  EXT=xz
 
 install:
   - sudo apt-get -qqy build-dep libvirt
@@ -34,6 +33,7 @@ install:
   - make
   - sudo make install
   - popd
+  - sudo cp tests/libvirtd.sasl /etc/sasl2/libvirt.conf
   - sudo libvirtd -d -l -f tests/libvirtd.conf
   - sudo virtlogd -d || true
   - sudo chmod a+rwx /var/run/libvirt/libvirt-sock*

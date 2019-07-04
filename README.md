@@ -21,7 +21,7 @@ The bindings use standard errors handling from Rust. Each method
 
 ## Tests/Exercises
 
-CI is executing tests automatically from libvirt 1.2.0 to 3.3.0. Using
+CI is executing tests automatically from libvirt 2.5.0 to 5.5.0. Using
 Rust from stable, beta to nightly.
 
 * https://travis-ci.org/libvirt/libvirt-rust
@@ -76,14 +76,18 @@ at any time. The preferred submission method is to use git send-email
 to submit patches to the libvir-list@redhat.com mailing list. eg. to
 send a single patch
 
+```
    git send-email --to libvir-list@redhat.com --subject-prefix "PATCH rust" \
        --smtp-server=$HOSTNAME -1
+```
 
 Or to send all patches on the current branch, against master
 
+```
    git send-email --to libvir-list@redhat.com --subject-prefix "PATCH rust" \
        --smtp-server=$HOSTNAME --no-chain-reply-to --cover-letter --annotate \
        master..
+```
 
 Note the master GIT repository is at
 
