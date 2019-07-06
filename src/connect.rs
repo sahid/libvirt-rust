@@ -398,6 +398,36 @@ impl ConnectCredential {
     }
 }
 
+
+extern "C" fn wrapper(ccreds: sys::virConnectCredentialPtr,
+                             ncred: libc::c_uint,
+                             cbdata: *mut libc::c_void)
+                             -> libc::c_int {
+    let callback: ConnectAuthCallback = unsafe {
+        mem::transmute(cbdata)
+    };
+    let mut rcreds: Vec<ConnectCredential> = Vec::new();
+    for i in 0..ncred as isize {
+        let c = unsafe {
+            ConnectCredential::from_ptr(ccreds.offset(i))
+        };
+        rcreds.push(c);
+    }
+    callback(&mut rcreds);
+    for i in 0..ncred as isize {
+        if rcreds[i as usize].result.is_some() {
+            if let Some(ref result) = rcreds[i as usize].result {
+                unsafe {
+                    (*ccreds.offset(i)).resultlen = result.len() as libc::c_uint;
+                    (*ccreds.offset(i)).result = string_to_mut_c_chars!(result.clone());
+                }
+            }
+        }
+    }
+    0
+}
+
+
 pub struct ConnectAuth {
     /// List of supported `ConnectCredentialType` values.
     creds: Vec<ConnectCredentialType>,
@@ -414,28 +444,6 @@ impl ConnectAuth {
     }
 
     fn to_cstruct(&mut self) -> sys::virConnectAuth {
-        unsafe extern "C" fn wrapper(ccreds: sys::virConnectCredentialPtr,
-                                     ncred: libc::c_uint,
-                                     cbdata: *mut libc::c_void)
-                                     -> libc::c_int {
-            let callback: ConnectAuthCallback = mem::transmute(cbdata);
-            let mut rcreds: Vec<ConnectCredential> = Vec::new();
-            for i in 0..ncred as isize {
-                let c = ConnectCredential::from_ptr(ccreds.offset(i));
-                rcreds.push(c);
-            }
-            callback(&mut rcreds);
-            for i in 0..ncred as isize {
-                if rcreds[i as usize].result.is_some() {
-                    if let Some(ref result) = rcreds[i as usize].result {
-                        (*ccreds.offset(i)).resultlen = result.len() as libc::c_uint;
-                        (*ccreds.offset(i)).result = string_to_mut_c_chars!(result.clone());
-                    }
-                }
-            }
-            0
-        }
-
         unsafe {
             sys::virConnectAuth {
                 credtype: &mut self.creds[0],
@@ -509,13 +517,13 @@ impl Connect {
     /// }
     /// ```
     pub fn open(uri: &str) -> Result<Connect, Error> {
-        unsafe {
-            let c = virConnectOpen(string_to_c_chars!(uri));
-            if c.is_null() {
-                return Err(Error::new());
-            }
-            return Ok(Connect::new(c));
+        let c = unsafe {
+            virConnectOpen(string_to_c_chars!(uri))
+        };
+        if c.is_null() {
+            return Err(Error::new());
         }
+        Ok(Connect::new(c))
     }
 
     /// This function should be called first to get a restricted
@@ -554,14 +562,20 @@ impl Connect {
                      auth: &mut ConnectAuth,
                      flags: ConnectFlags)
                      -> Result<Connect, Error> {
-        unsafe {
-            let mut cauth = auth.to_cstruct();
-            let c = virConnectOpenAuth(string_to_c_chars!(uri), &mut cauth, flags as libc::c_uint);
-            if c.is_null() {
-                return Err(Error::new());
-            }
-            return Ok(Connect::new(c));
+
+        let c = unsafe {
+            let mut cauth = sys::virConnectAuth {
+                credtype: &mut auth.creds[0],
+                ncredtype: auth.creds.len() as libc::c_uint,
+                cb: wrapper,
+                cbdata: mem::transmute(auth.callback),
+            };
+            virConnectOpenAuth(string_to_c_chars!(uri), &mut cauth, flags as libc::c_uint)
+        };
+        if c.is_null() {
+            return Err(Error::new());
         }
+        Ok(Connect::new(c))
     }
 
 
@@ -570,16 +584,14 @@ impl Connect {
     /// hypervisor are needed especially if there is running domain
     /// which need further monitoring by the application.
     pub fn close(&mut self) -> Result<i32, Error> {
-        unsafe {
-            let ret = virConnectClose(self.as_ptr());
-            if ret == -1 {
-                return Err(Error::new());
-            }
-            if ret == 0 {
-                self.ptr = None;
-            }
-            Ok(ret)
+        let ret = unsafe { virConnectClose(self.as_ptr()) };
+        if ret == -1 {
+            return Err(Error::new());
         }
+        if ret == 0 {
+            self.ptr = None;
+        }
+        Ok(ret)
     }
 
     /// This returns a system hostname on which the hypervisor is

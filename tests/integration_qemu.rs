@@ -86,6 +86,7 @@ fn test_create_storage_pool_and_vols() {
     common::close(c);
 }
 
+/*
 #[test]
 #[ignore]
 fn test_connection_with_auth() {
@@ -97,7 +98,10 @@ fn test_connection_with_auth() {
     connection_with_auth_ok();
     connection_with_auth_wrong();
 }
+*/
 
+#[test]
+#[ignore]
 fn connection_with_auth_ok() {
     fn callback(creds: &mut Vec<ConnectCredential>) {
         for cred in creds {
@@ -109,7 +113,7 @@ fn connection_with_auth_ok() {
                     cred.result = Some(String::from("pass"));
                 }
                 _ => {
-                    panic!("Should not be here...");
+                    println!("Should not be here...");
                 }
             }
         }
@@ -118,16 +122,13 @@ fn connection_with_auth_ok() {
     let mut auth = ConnectAuth::new(vec![::virt::connect::VIR_CRED_AUTHNAME,
                                          ::virt::connect::VIR_CRED_PASSPHRASE],
                                     callback);
-    match Connect::open_auth("test+tcp://127.0.0.1/default", &mut auth, 0) {
-        Ok(c) => common::close(c),
-        Err(e) => {
-            panic!("open_auth did not work: code {}, message: {}",
-                   e.code,
-                   e.message)
-        }
-    }
+    let c = Connect::open_auth("test+tcp://127.0.0.1/default", &mut auth, 0);
+    assert_eq!(true, c.is_ok());
+    common::close(c.unwrap());
 }
 
+#[test]
+#[ignore]
 fn connection_with_auth_wrong() {
     fn callback(creds: &mut Vec<ConnectCredential>) {
         for cred in creds {
@@ -148,9 +149,8 @@ fn connection_with_auth_wrong() {
     let mut auth = ConnectAuth::new(vec![::virt::connect::VIR_CRED_AUTHNAME,
                                          ::virt::connect::VIR_CRED_PASSPHRASE],
                                     callback);
-    if Connect::open_auth("test+tcp://127.0.0.1/default", &mut auth, 0).is_ok() {
-        panic!("open_auth did not work: code {}, message:");
-    }
+    let c = Connect::open_auth("test+tcp://127.0.0.1/default", &mut auth, 0);
+    assert_eq!(false, c.is_ok());
 }
 
 #[test]

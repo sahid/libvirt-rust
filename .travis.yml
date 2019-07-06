@@ -41,4 +41,4 @@ install:
 
 script:
   - cargo test --verbose
-  - cargo test --verbose -- --ignored
+  - cargo test --verbose -- --ignored --test-threads=1
