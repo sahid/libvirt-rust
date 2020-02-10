@@ -58,3 +58,37 @@ fn test_lookup_storage_pool_by_name() {
     }
     common::close(c);
 }
+
+#[test]
+fn test_list_volumes() {
+    match Connect::open("test:///default") {
+        Ok(mut conn) => {
+            let sp = conn.list_storage_pools().unwrap_or(vec![]);
+            match StoragePool::lookup_by_name(&conn, &sp[0]) {
+                Ok(storage_pool) => {
+                    storage_pool.list_volumes().unwrap();
+                }
+                Err(e) => panic!("failed with code {}, message: {}", e.code, e.message),
+            }
+            assert_eq!(0, conn.close().unwrap_or(-1));
+        }
+        Err(e) => panic!("failed with code {}, message: {}", e.code, e.message),
+    }
+}
+
+#[test]
+fn test_list_all_volumes() {
+    match Connect::open("test:///default") {
+        Ok(mut conn) => {
+            let sp = conn.list_storage_pools().unwrap_or(vec![]);
+            match StoragePool::lookup_by_name(&conn, &sp[0]) {
+                Ok(storage_pool) => {
+                    storage_pool.list_all_volumes(0).unwrap();
+                }
+                Err(e) => panic!("failed with code {}, message: {}", e.code, e.message),
+            }
+            assert_eq!(0, conn.close().unwrap_or(-1));
+        }
+        Err(e) => panic!("failed with code {}, message: {}", e.code, e.message),
+    }
+}
